@@ -1,12 +1,56 @@
-import g4f
 import tkinter as tk
 from tkinter import messagebox
 import threading
 import tempfile
 import os
+import sys
+import subprocess
+from io import BytesIO
+
+# Список внешних библиотек для установки
+EXTERNAL_LIBRARIES = [
+    "g4f",
+    "requests",
+    "PIL"
+]
 
 MESSAGES = []
 CURRENT_MODE = "chat"
+
+def ensure_library(library_name):
+    try:
+        __import__(library_name)
+        return True
+    except ImportError:
+        python_executable = sys.executable
+        pip_command = [python_executable, "-m", "pip", "install", library_name]
+        creation_flags = 0
+        if sys.platform == "win32":
+            creation_flags = subprocess.CREATE_NO_WINDOW
+
+        try:
+            process = subprocess.run(
+                pip_command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                creationflags=creation_flags,
+                check=False
+            )
+
+            if process.returncode == 0:
+                print(f"Библиотека '{library_name}' успешно установлена")
+                try:
+                    __import__(library_name)
+                    return True
+                except ImportError:
+                    return False
+            else:
+                return False
+        except FileNotFoundError:
+            return False
+        except Exception as e:
+            return False
 
 def get_response(query):
     MESSAGES.append({"role": "user", "content": query})
@@ -195,5 +239,9 @@ def main():
     window.mainloop()
 
 if __name__ == "__main__":
-    from io import BytesIO
+    for lib in EXTERNAL_LIBRARIES:
+        if not ensure_library(lib):
+            print(f"Не удалось установить библиотеку: {lib}")
+            exit()
+    
     main()
